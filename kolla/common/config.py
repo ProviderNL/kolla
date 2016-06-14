@@ -18,7 +18,14 @@ from oslo_config import types
 from kolla.version import version_info as version
 
 
-BASE_OS_DISTRO = ['centos', 'ubuntu', 'oraclelinux']
+BASE_OS_DISTRO = ['centos', 'ubuntu', 'oraclelinux', 'debian']
+DISTRO_RELEASE = {
+    'centos': '7',
+    'redhat': '7',
+    'oraclelinux': '7',
+    'debian': '8',
+    'ubuntu': '14.04',
+}
 RDO_MIRROR = "http://trunk.rdoproject.org/centos7"
 DELOREAN = "{}/current-passed-ci/delorean.repo".format(RDO_MIRROR)
 DELOREAN_DEPS = "{}/delorean-deps.repo".format(RDO_MIRROR)
@@ -120,10 +127,8 @@ _CLI_OPTS = [
                      ' dependency in Graphviz dot format')),
     cfg.StrOpt('type', short='t', default='binary',
                choices=INSTALL_TYPE_CHOICES,
-               dest='install_type', deprecated_group='kolla-build',
-               help=('The method of the OpenStack install. The valid'
-                     ' types are: {}'.format(
-                         ', '.join(INSTALL_TYPE_CHOICES)))),
+               dest='install_type',
+               help=('The method of the OpenStack install')),
     cfg.IntOpt('threads', short='T', default=8, min=1,
                deprecated_group='kolla-build',
                help=('The number of threads to use while building.'
@@ -137,6 +142,8 @@ _CLI_OPTS = [
                 help=("Don't build images. Generate Dockerfile only")),
     cfg.IntOpt('timeout', default=120,
                help='Time in seconds after which any operation times out'),
+    cfg.StrOpt('template-override',
+               help='Path to template override file'),
 ]
 
 _BASE_OPTS = [
@@ -217,6 +224,10 @@ SOURCES = {
         'type': 'url',
         'location': ('http://tarballs.openstack.org/neutron/'
                      'neutron-master.tar.gz')},
+    'neutron-lbaas-agent': {
+        'type': 'url',
+        'location': ('http://tarballs.openstack.org/neutron-lbaas/'
+                     'neutron-lbaas-master.tar.gz')},
     'nova-base': {
         'type': 'url',
         'location': ('http://tarballs.openstack.org/nova/'
@@ -229,6 +240,10 @@ SOURCES = {
         'type': 'url',
         'location': ('http://github.com/kanaka/noVNC/tarball/'
                      'v0.5.1')},
+    'sahara-base': {
+        'type': 'url',
+        'location': ('http://tarballs.openstack.org/sahara/'
+                     'sahara-master.tar.gz')},
     'swift-base': {
         'type': 'url',
         'location': ('http://tarballs.openstack.org/swift/'
@@ -290,5 +305,10 @@ def parse(conf, args, usage=None, prog=None,
          prog=prog,
          version=version.cached_version_string(),
          default_config_files=default_config_files)
+
+    # NOTE(jeffrey4l): set the default base tag based on the
+    # base option
+    conf.set_default('base_tag', DISTRO_RELEASE.get(conf.base))
+
     if not conf.base_image:
         conf.base_image = conf.base

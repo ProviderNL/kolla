@@ -25,12 +25,13 @@ RUN sed -i "s|WEBROOT = '/dashboard/'|WEBROOT = '/'|" /etc/openstack-dashboard/l
 
     {% elif base_distro in ['ubuntu'] %}
 
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get -y install --no-install-recommends \
         openstack-dashboard \
         apache2 \
         libapache2-mod-wsgi \
         gettext \
     && echo > /etc/apache2/ports.conf \
+    && sed -i 's|\(ServerTokens \)OS|\1Prod|' /etc/apache2/conf-available/security.conf \
     && apt-get clean \
     && ln -s ../mods-available/headers.load  /etc/apache2/mods-enabled/headers.load
 
@@ -52,7 +53,7 @@ RUN cp /usr/share/openstack-dashboard/openstack_dashboard/conf/*.json /etc/opens
 {% elif install_type == 'source' %}
     {% if base_distro in ['centos', 'fedora', 'oraclelinux', 'rhel'] %}
 
-RUN yum install -y \
+RUN yum -y install \
         httpd \
         mod_wsgi \
         gettext \
@@ -61,7 +62,7 @@ RUN yum install -y \
 
     {% elif base_distro in ['ubuntu', 'debian'] %}
 
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get -y install --no-install-recommends \
         apache2 \
         libapache2-mod-wsgi \
         gettext \

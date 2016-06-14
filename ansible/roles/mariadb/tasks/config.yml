@@ -25,3 +25,10 @@
     dest: "{{ node_config_directory }}/{{ item }}/galera.cnf"
   with_items:
     - "mariadb"
+
+- name: Copying over wsrep-notify.sh
+  template:
+    src: "{{ role_path }}/templates/wsrep-notify.sh.j2"
+    dest: "{{ node_config_directory }}/{{ item }}/wsrep-notify.sh"
+  with_items:
+    - "mariadb"

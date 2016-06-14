@@ -188,6 +188,7 @@ EXAMPLES = '''
 '''
 
 import os
+import traceback
 
 import docker
 
@@ -681,32 +682,30 @@ def generate_module():
     required_together = [
         ['tls_cert', 'tls_key']
     ]
-    return AnsibleModule(
+    module = AnsibleModule(
         argument_spec=argument_spec,
-        required_together=required_together
+        required_together=required_together,
+        bypass_checks=True
     )
 
+    new_args = module.params.pop('common_options', dict())
 
-def generate_nested_module():
-    module = generate_module()
+    # NOTE(jeffrey4l): merge the environment
+    env = module.params.pop('environment', dict())
+    if env:
+        new_args['environment'].update(env)
 
-    # We unnest the common dict and the update it with the other options
-    new_args = module.params.get('common_options')
-    new_args.update(module._load_params()[0])
+    for key, value in module.params.iteritems():
+        if key in new_args and value is None:
+            continue
+        new_args[key] = value
+
     module.params = new_args
-
-    # Override ARGS to ensure new args are used
-    global MODULE_ARGS
-    global MODULE_COMPLEX_ARGS
-    MODULE_ARGS = ''
-    MODULE_COMPLEX_ARGS = json.dumps(module.params)
-
-    # Reprocess the args now that the common dict has been unnested
-    return generate_module()
+    return module
 
 
 def main():
-    module = generate_nested_module()
+    module = generate_module()
 
     # TODO(SamYaple): Replace with required_if when Ansible 2.0 lands
     if (module.params.get('action') in ['pull_image', 'start_container']
@@ -730,8 +729,9 @@ def main():
         # meaningful data, we need to refactor all methods to return dicts.
         result = bool(getattr(dw, module.params.get('action'))())
         module.exit_json(changed=dw.changed, result=result)
-    except Exception as e:
-        module.exit_json(failed=True, changed=True, msg=repr(e))
+    except Exception:
+        module.exit_json(failed=True, changed=True,
+                         msg=repr(traceback.format_exc()))
 
 # import module snippets
 from ansible.module_utils.basic import *  # noqa

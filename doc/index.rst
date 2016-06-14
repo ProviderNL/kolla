@@ -14,6 +14,10 @@
       License for the specific language governing permissions and limitations
       under the License.
 
+=================================
+Welcome to Kolla's documentation!
+=================================
+
 Kolla's Mission
 ===============
 
@@ -32,17 +36,13 @@ Kolla Overview
 .. toctree::
    :maxdepth: 1
 
-   CONTRIBUTING
    deployment-philosophy
    quickstart
    multinode
-   heat-dev-env
-   vagrant-dev-env
    image-building
    advanced-configuration
    operating-kolla
    security
-   liberty-deployment-warning
 
 Kolla Services
 ==============
@@ -56,3 +56,13 @@ Kolla Services
    manila-guide
    swift-guide
    kibana-guide
+
+Developer Docs
+==============
+
+.. toctree::
+   :maxdepth: 1
+
+   CONTRIBUTING
+   heat-dev-env
+   vagrant-dev-env

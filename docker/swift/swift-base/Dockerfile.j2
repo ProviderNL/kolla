@@ -10,7 +10,7 @@ RUN yum -y install \
 
     {% elif base_distro in ['ubuntu'] %}
 
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get -y install --no-install-recommends \
         swift \
     && apt-get clean
 
@@ -22,9 +22,9 @@ RUN yum -y install \
         liberasurecode-devel \
     && yum clean all
 
-    {% elif base_distro in ['ubuntu'] %}
+    {% elif base_distro in ['ubuntu', 'debian'] %}
 
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get -y install --no-install-recommends \
         liberasurecode-dev \
     && apt-get clean
 

@@ -8,14 +8,16 @@ RUN yum -y install \
         openstack-neutron \
         openstack-neutron-ml2 \
         openvswitch \
+        openstack-neutron-lbaas \
     && yum clean all
 
     {% elif base_distro in ['ubuntu'] %}
 
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get -y install --no-install-recommends \
         neutron-plugin-ml2 \
         neutron-server \
         openvswitch-switch \
+        neutron-lbaas \
     && apt-get clean \
     && mkdir -p /usr/share/neutron \
     && ln -s /etc/neutron/api-paste.ini /usr/share/neutron/api-paste.ini
@@ -35,8 +37,8 @@ RUN yum -y install \
 
     {% elif base_distro in ['ubuntu', 'debian'] %}
 
-RUN apt-get install -y --no-install-recommends \
-        arping \
+RUN apt-get -y install --no-install-recommends \
+        iputils-arping \
         conntrack \
         dnsmasq \
         dnsmasq-utils \

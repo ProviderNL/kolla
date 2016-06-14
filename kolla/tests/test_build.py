@@ -10,49 +10,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import fixtures
 import itertools
 import mock
 import os
 import requests
 
-from kolla.cmd import build
+from kolla.cmd import build as build_cmd
+from kolla.image import build
 from kolla.tests import base
 
 
-FAKE_IMAGE = {
-    'name': 'image-base',
-    'status': 'matched',
-    'parent': None,
-    'parent_name': None,
-    'path': '/fake/path',
-    'plugins': [],
-    'fullname': 'image-base:latest',
-}
+FAKE_IMAGE = build.Image('image-base', 'image-base:latest',
+                         '/fake/path', parent_name=None,
+                         parent=None, status=build.STATUS_MATCHED)
 
 
-class WorkerThreadTest(base.TestCase):
+class TasksTest(base.TestCase):
 
     def setUp(self):
-        super(WorkerThreadTest, self).setUp()
-        self.image = FAKE_IMAGE.copy()
+        super(TasksTest, self).setUp()
+        self.image = copy.deepcopy(FAKE_IMAGE)
         # NOTE(jeffrey4l): use a real, temporary dir
-        self.image['path'] = self.useFixture(fixtures.TempDir()).path
+        self.image.path = self.useFixture(fixtures.TempDir()).path
+
+    @mock.patch.dict(os.environ, clear=True)
+    @mock.patch('docker.Client')
+    def test_push_image(self, mock_client):
+        pusher = build.PushTask(self.conf, self.image)
+        pusher.run()
+        mock_client().push.assert_called_once_with(
+            self.image.canonical_name, stream=True, insecure_registry=True)
 
     @mock.patch.dict(os.environ, clear=True)
     @mock.patch('docker.Client')
     def test_build_image(self, mock_client):
-        queue = mock.Mock()
         push_queue = mock.Mock()
-        worker = build.WorkerThread(queue,
-                                    push_queue,
-                                    self.conf)
-        worker.builder(self.image)
+        builder = build.BuildTask(self.conf, self.image, push_queue)
+        builder.run()
 
         mock_client().build.assert_called_once_with(
-            path=self.image['path'], tag=self.image['fullname'],
+            path=self.image.path, tag=self.image.canonical_name,
             nocache=False, rm=True, pull=True, forcerm=True,
             buildargs=None)
+
+        self.assertTrue(builder.success)
 
     @mock.patch.dict(os.environ, clear=True)
     @mock.patch('docker.Client')
@@ -62,32 +65,34 @@ class WorkerThreadTest(base.TestCase):
             'NO_PROXY': '127.0.0.1'
         }
         self.conf.set_override('build_args', build_args)
-        worker = build.WorkerThread(mock.Mock(),
-                                    mock.Mock(),
-                                    self.conf)
-        worker.builder(self.image)
+        push_queue = mock.Mock()
+        builder = build.BuildTask(self.conf, self.image, push_queue)
+        builder.run()
 
         mock_client().build.assert_called_once_with(
-            path=self.image['path'], tag=self.image['fullname'],
+            path=self.image.path, tag=self.image.canonical_name,
             nocache=False, rm=True, pull=True, forcerm=True,
             buildargs=build_args)
+
+        self.assertTrue(builder.success)
 
     @mock.patch.dict(os.environ, {'http_proxy': 'http://FROM_ENV:8080'},
                      clear=True)
     @mock.patch('docker.Client')
     def test_build_arg_from_env(self, mock_client):
+        push_queue = mock.Mock()
         build_args = {
             'http_proxy': 'http://FROM_ENV:8080',
         }
-        worker = build.WorkerThread(mock.Mock(),
-                                    mock.Mock(),
-                                    self.conf)
-        worker.builder(self.image)
+        builder = build.BuildTask(self.conf, self.image, push_queue)
+        builder.run()
 
         mock_client().build.assert_called_once_with(
-            path=self.image['path'], tag=self.image['fullname'],
+            path=self.image.path, tag=self.image.canonical_name,
             nocache=False, rm=True, pull=True, forcerm=True,
             buildargs=build_args)
+
+        self.assertTrue(builder.success)
 
     @mock.patch.dict(os.environ, {'http_proxy': 'http://FROM_ENV:8080'},
                      clear=True)
@@ -97,36 +102,38 @@ class WorkerThreadTest(base.TestCase):
             'http_proxy': 'http://localhost:8080',
         }
         self.conf.set_override('build_args', build_args)
-        worker = build.WorkerThread(mock.Mock(),
-                                    mock.Mock(),
-                                    self.conf)
-        worker.builder(self.image)
+
+        push_queue = mock.Mock()
+        builder = build.BuildTask(self.conf, self.image, push_queue)
+        builder.run()
 
         mock_client().build.assert_called_once_with(
-            path=self.image['path'], tag=self.image['fullname'],
+            path=self.image.path, tag=self.image.canonical_name,
             nocache=False, rm=True, pull=True, forcerm=True,
             buildargs=build_args)
+
+        self.assertTrue(builder.success)
 
     @mock.patch('docker.Client')
     @mock.patch('requests.get')
     def test_requests_get_timeout(self, mock_get, mock_client):
-        worker = build.WorkerThread(mock.Mock(),
-                                    mock.Mock(),
-                                    self.conf)
-        self.image['source'] = {
+        self.image.source = {
             'source': 'http://fake/source',
             'type': 'url',
             'name': 'fake-image-base'
         }
+        push_queue = mock.Mock()
+        builder = build.BuildTask(self.conf, self.image, push_queue)
         mock_get.side_effect = requests.exceptions.Timeout
-        get_result = worker.process_source(self.image,
-                                           self.image['source'])
+        get_result = builder.process_source(self.image, self.image.source)
 
         self.assertIsNone(get_result)
-        self.assertEqual(self.image['status'], 'error')
-        self.assertEqual(self.image['logs'], str())
-        mock_get.assert_called_once_with(self.image['source']['source'],
+        self.assertEqual(self.image.status, build.STATUS_ERROR)
+        self.assertEqual(str(self.image.logs), str())
+        mock_get.assert_called_once_with(self.image.source['source'],
                                          timeout=120)
+
+        self.assertFalse(builder.success)
 
 
 class KollaWorkerTest(base.TestCase):
@@ -135,8 +142,8 @@ class KollaWorkerTest(base.TestCase):
 
     def setUp(self):
         super(KollaWorkerTest, self).setUp()
-        image = FAKE_IMAGE.copy()
-        image['status'] = None
+        image = copy.deepcopy(FAKE_IMAGE)
+        image.status = None
         self.images = [image]
 
     def test_supported_base_type(self):
@@ -177,14 +184,15 @@ class KollaWorkerTest(base.TestCase):
             'type': 'git'
         }
         for image in kolla.images:
-            if image['name'] == 'neutron-server':
-                self.assertEqual(image['plugins'][0], expected_plugin)
+            if image.name == 'neutron-server':
+                self.assertEqual(image.plugins[0], expected_plugin)
                 break
         else:
             self.fail('Can not find the expected neutron arista plugin')
 
     def _get_matched_images(self, images):
-        return [image for image in images if image['status'] == 'matched']
+        return [image for image in images
+                if image.status == build.STATUS_MATCHED]
 
     def test_without_profile(self):
         kolla = build.KollaWorker(self.conf)
@@ -218,3 +226,30 @@ class KollaWorkerTest(base.TestCase):
         kolla.images = self.images
         self.assertRaises(ValueError,
                           kolla.filter_images)
+
+
+@mock.patch.object(build, 'run_build')
+class MainTest(base.TestCase):
+
+    def test_images_built(self, mock_run_build):
+        image_statuses = ({}, {'img': 'built'}, {})
+        mock_run_build.return_value = image_statuses
+        result = build_cmd.main()
+        self.assertEqual(0, result)
+
+    def test_images_unmatched(self, mock_run_build):
+        image_statuses = ({}, {}, {'img': 'unmatched'})
+        mock_run_build.return_value = image_statuses
+        result = build_cmd.main()
+        self.assertEqual(0, result)
+
+    def test_no_images_built(self, mock_run_build):
+        mock_run_build.return_value = None
+        result = build_cmd.main()
+        self.assertEqual(0, result)
+
+    def test_bad_images(self, mock_run_build):
+        image_statuses = ({'img': 'error'}, {}, {})
+        mock_run_build.return_value = image_statuses
+        result = build_cmd.main()
+        self.assertEqual(1, result)
