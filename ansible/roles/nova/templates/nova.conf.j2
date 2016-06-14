@@ -12,6 +12,8 @@ state_path = /var/lib/nova
 secure_proxy_ssl_header = X-Forwarded-Proto
 {% endif %}
 
+dhcp_domain= vm-nl01-eu.stack.provider.nl
+
 osapi_compute_listen = {{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['address'] }}
 osapi_compute_listen_port = {{ nova_api_port }}
 
