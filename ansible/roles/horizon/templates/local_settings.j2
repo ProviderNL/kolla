@@ -65,11 +65,11 @@ OPENSTACK_API_VERSIONS = {
 
 # Set this to True if running on multi-domain model. When this is enabled, it
 # will require user to enter the Domain name in addition to username for login.
-OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True
+OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = False
 
 # Overrides the default domain used when running on single-domain model
 # with Keystone V3. All entities will be created in the default domain.
-#OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = 'Default'
+OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = 'Default'
 
 # Set Console type:
 # valid options are "AUTO"(default), "VNC", "SPICE", "RDP", "SERIAL" or None
@@ -196,7 +196,7 @@ OPENSTACK_KEYSTONE_BACKEND = {
 
 # Setting this to True, will add a new "Retrieve Password" action on instance,
 # allowing Admin session password retrieval/decryption.
-#OPENSTACK_ENABLE_PASSWORD_RETRIEVE = False
+OPENSTACK_ENABLE_PASSWORD_RETRIEVE = True
 
 # The Launch Instance user experience has been significantly enhanced.
 # You can choose whether to enable the new launch instance experience,
@@ -218,7 +218,7 @@ OPENSTACK_KEYSTONE_BACKEND = {
 # from the UI.
 OPENSTACK_HYPERVISOR_FEATURES = {
     'can_set_mount_point': False,
-    'can_set_password': False,
+    'can_set_password': True,
 }
 
 # The OPENSTACK_CINDER_FEATURES settings can be used to enable optional
@@ -233,7 +233,7 @@ OPENSTACK_CINDER_FEATURES = {
 OPENSTACK_NEUTRON_NETWORK = {
     'enable_router': True,
     'enable_quotas': True,
-    'enable_ipv6': True,
+    'enable_ipv6': False,
     'enable_distributed_router': False,
     'enable_ha_router': False,
     'enable_lb': True,
