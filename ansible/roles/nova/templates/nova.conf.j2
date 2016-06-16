@@ -35,6 +35,7 @@ linuxnet_interface_driver = nova.network.linux_net.NeutronLinuxBridgeInterfaceDr
 {% endif %}
 
 allow_resize_to_same_host = true
+enable_instance_password = True
 
 {% if enable_ironic | bool %}
 scheduler_host_manager = nova.scheduler.ironic_host_manager.IronicHostManager
