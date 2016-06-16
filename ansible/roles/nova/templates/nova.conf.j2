@@ -154,7 +154,7 @@ memcached_servers = {% for host in groups['memcached'] %}{{ hostvars[host]['ansi
 
 [libvirt]
 connection_uri = "qemu+tcp://{{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['address'] }}/system"
-inject_password=true
+inject_password = true
 {% if enable_ceph | bool %}
 images_type = rbd
 images_rbd_pool = {{ ceph_nova_pool_name }}
