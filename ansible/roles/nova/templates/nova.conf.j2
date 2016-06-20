@@ -61,7 +61,7 @@ my_ip = {{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['add
 [vnc]
 novncproxy_host = {{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['address'] }}
 novncproxy_port = {{ nova_novncproxy_port }}
-vncserver_listen = {{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['address'] }}
+vncserver_listen = 0.0.0.0
 vncserver_proxyclient_address = {{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['address'] }}
 {% if inventory_hostname in groups['compute'] %}
 novncproxy_base_url = {{ public_protocol }}://{{ kolla_external_fqdn }}:{{ nova_novncproxy_port }}/vnc_auto.html
@@ -155,6 +155,9 @@ memcached_servers = {% for host in groups['memcached'] %}{{ hostvars[host]['ansi
 [libvirt]
 connection_uri = "qemu+tcp://{{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['address'] }}/system"
 inject_password = true
+live_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_LIVE,VIR_MIGRATE_NON_SHARED_DISK_INC
+block_migration_flag=VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_LIVE,VIR_MIGRATE_NON_SHARED_DISK_INC
+
 {% if enable_ceph | bool %}
 images_type = rbd
 images_rbd_pool = {{ ceph_nova_pool_name }}
