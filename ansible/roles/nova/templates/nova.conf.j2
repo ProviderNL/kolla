@@ -101,8 +101,8 @@ lock_path = /var/lib/nova/tmp
 
 [glance]
 api_servers = {% for host in groups['glance-api'] %}{{ internal_protocol }}://{{ hostvars[host]['ansible_' + hostvars[host]['api_interface']]['ipv4']['address'] }}:{{ glance_api_port }}{% if not loop.last %},{% endif %}{% endfor %}
-
 num_retries = {{ groups['glance-api'] | length }}
+use_glance_v1 = True
 
 [cinder]
 catalog_info = volume:cinder:internalURL
