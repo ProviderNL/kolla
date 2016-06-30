@@ -13,6 +13,8 @@ secure_proxy_ssl_header = X-Forwarded-Proto
 {% endif %}
 
 dhcp_domain = vm-nl01-eu.stack.provider.nl
+default_availability_zone = nl01
+default_schedule_zone = nl01
 
 osapi_compute_listen = {{ hostvars[inventory_hostname]['ansible_' + api_interface]['ipv4']['address'] }}
 osapi_compute_listen_port = {{ nova_api_port }}
