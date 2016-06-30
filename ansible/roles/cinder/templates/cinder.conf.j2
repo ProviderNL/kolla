@@ -15,6 +15,8 @@ glance_api_servers = {{ internal_protocol }}://{{ kolla_internal_fqdn }}:{{ glan
 glance_api_version = 2
 
 os_region_name = {{ openstack_region_name }}
+storage_availability_zone = nl01
+
 
 {% if cinder_volume_driver == "lvm" %}
 enabled_backends = {{ cinder_volume_backend_name }}
